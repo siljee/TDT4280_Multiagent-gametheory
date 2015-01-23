@@ -29,6 +29,10 @@ public class Player {
 		previousActions.add(currentAction);
 	}
 	
+	public void resetpreviousActions() {
+		previousActions.clear();
+	}
+	
 	public void updateSumPayoff(Action opponentAction) {
 		if(opponentAction==Agent.Action.DEFECT && currentAction==Agent.Action.DEFECT) {
 			sumPayoff += 2;

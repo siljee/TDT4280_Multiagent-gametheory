@@ -16,27 +16,26 @@ public class Environment {
 		Players.add(new MixPlayer());
 		Players.add(new RandomPlayer());
 	}
-	
+		
 	public void playNRounds(int n) {
-		for(int i = 0; i < n; i++) {
-			playOneRound();
-		}
-	}
-	
-	private void playOneRound() {
 		for(int i = 0; i<Players.size()-1; i++) {
 			for(int j = i+1; j<Players.size();j++) {
-				((Agent) Players.get(i)).dilemma(Players.get(j).getPreviousActions());
-				((Agent) Players.get(j)).dilemma(Players.get(i).getPreviousActions());
-				
-				Players.get(i).updateSumPayoff(Players.get(j).getCurrentAction());
-				Players.get(j).updateSumPayoff(Players.get(i).getCurrentAction());
-				
-				Players.get(i).addCurrentActionToPrevious();
-				Players.get(j).addCurrentActionToPrevious();
-				
+				for(int roundNumber = 0; roundNumber < n; roundNumber++) {
+					((Agent) Players.get(i)).dilemma(Players.get(j).getPreviousActions());
+					((Agent) Players.get(j)).dilemma(Players.get(i).getPreviousActions());
+					
+					Players.get(i).updateSumPayoff(Players.get(j).getCurrentAction());
+					Players.get(j).updateSumPayoff(Players.get(i).getCurrentAction());
+					
+					Players.get(i).addCurrentActionToPrevious();
+					Players.get(j).addCurrentActionToPrevious();
+					
+				}
+				Players.get(i).resetpreviousActions();
+				Players.get(j).resetpreviousActions();
 			}
 		}
+		
 	}
 	
 	public void printFScores(int n) {

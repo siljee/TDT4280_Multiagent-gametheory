@@ -29,7 +29,7 @@ public class MixPlayer extends Player implements Agent{
 	}
 	
 	private void titForTat(List<Action> opponentPreviousActions) {
-		if (opponentPreviousActions==null){
+		if (opponentPreviousActions.size()==0){
 			currentAction = Agent.Action.COOPERATE;
 		} else {
 			int lastElementIndex = opponentPreviousActions.size() - 1;

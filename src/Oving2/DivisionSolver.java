@@ -15,7 +15,7 @@ public class DivisionSolver extends GeneralSolver {
 		String[] parts = numberSplitter(problem);
 		int left = Integer.parseInt(parts[0]);
 		int right = Integer.parseInt(parts[1]);
-		return ((Integer) left*right);
+		return ((Integer) left/right);
 	}
 
 }

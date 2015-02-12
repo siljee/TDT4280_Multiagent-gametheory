@@ -16,7 +16,7 @@ import jade.lang.acl.MessageTemplate;
 public class TaskAdministrator extends Agent{	
 	
 	private AID[] taskAgents;
-	private String agentType = "Adder";
+	private String agentType = "Subber";
 	private Agent myAgent = this;
 	private String problem = "";
 	private String subProblem = "";
@@ -45,6 +45,7 @@ public class TaskAdministrator extends Agent{
 				
 				@Override
 				protected void onTick() {
+					
 					System.out.println("Searching for agent type: " + agentType);
 					DFAgentDescription template = new DFAgentDescription();
 					ServiceDescription sd = new ServiceDescription();

@@ -1,5 +1,6 @@
 package Oving2;
 
+
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
@@ -9,37 +10,36 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-public class AdditionSolver extends Agent{
+public abstract class GeneralSolver extends Agent {
 	
-	private Agent myAgent = this; 
+	protected String name;
+	protected String type;
+	protected Agent myAgent;
 	
 	
 	public void setup() {
-		System.out.println("Starting adder agent");
+		System.out.println("Agent " + getName() + " started");
+		registerToDF();
+		addBehaviours();
+	}
+	
+	private void registerToDF() {
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
-		sd.setType("Adder");
-		sd.setName("JADE-adder");
+		sd.setType(type);
+		sd.setName(name);
 		dfd.addServices(sd);
 		try {
 			DFService.register(this, dfd);
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
-		
-		addBehaviour(new BidServer());
-		addBehaviour(new InformServer());
-		
 	}
 	
-	public void takeDown() {
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Adder agent terminating");
+	private void addBehaviours() {
+		addBehaviour(new BidServer());
+		addBehaviour(new InformServer());
 	}
 	
 	private class BidServer extends CyclicBehaviour {
@@ -107,18 +107,22 @@ public class AdditionSolver extends Agent{
 			
 		}
 		
-		private Integer solveProblem(String problem) {
-			try {
-				String[] parts = problem.split("\\+");
-				int left = Integer.parseInt(parts[0]);
-				int right = Integer.parseInt(parts[1]);
-				return ((Integer) left+right);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return -999;
+	}
+	
+	protected abstract Integer solveProblem(String problem);
+	
+	protected String[] numberSplitter(String problem) {
+		String[] parts = problem.split("\\s+");
+		return parts;
+	}
+	
+	public void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException e) {
+			e.printStackTrace();
 		}
-		
+		System.out.println(type+" agent terminating");
 	}
 
 }

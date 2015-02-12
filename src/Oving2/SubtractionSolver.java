@@ -8,8 +8,8 @@ public class SubtractionSolver extends GeneralSolver {
 	
 	public SubtractionSolver() {
 		this.myAgent = this;
-		this.type = "Subber";
-		this.name = "JADE-subber";
+		this.type = "Subtracter";
+		this.name = "JADE-subtracter";
 	}
 	
 

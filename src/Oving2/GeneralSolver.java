@@ -16,7 +16,6 @@ public abstract class GeneralSolver extends Agent {
 	protected String type;
 	protected Agent myAgent;
 	
-	
 	public void setup() {
 		System.out.println("Agent " + getName() + " started");
 		registerToDF();

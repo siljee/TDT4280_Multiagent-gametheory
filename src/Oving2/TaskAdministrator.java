@@ -16,10 +16,10 @@ import jade.lang.acl.MessageTemplate;
 public class TaskAdministrator extends Agent{	
 	
 	private AID[] taskAgents;
-	private String agentType = "Subber";
+	private String agentType = ""; // What operation to do. Ex: Adder, Subtracter, Divider, Multiplier
 	private Agent myAgent = this;
-	private String problem = "";
-	private String subProblem = "";
+	private String problem = ""; // Complete number
+	private String subProblem = ""; // Two numbers with a space between
 	
 	public void setup() {
 		System.out.println("TaskAdmin: "+getAID().getName()+" is ready.");
@@ -73,7 +73,6 @@ public class TaskAdministrator extends Agent{
 			});
 			
 			
-			
 		} else {
 			System.out.println("Could not solve this");
 			doDelete();
@@ -83,7 +82,7 @@ public class TaskAdministrator extends Agent{
 	}
 	
 	public void takeDown() {
-		System.out.println("Terminating TaskManager");
+		System.out.println("Terminating TaskAdministrator");
 	}
 	
 	private class RequestPerformer extends Behaviour {

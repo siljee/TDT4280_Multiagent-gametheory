@@ -15,6 +15,7 @@ public class AdditionSolver extends Agent{
 	
 	
 	public void setup() {
+		System.out.println("Starting adder agent");
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -26,6 +27,9 @@ public class AdditionSolver extends Agent{
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
+		
+		addBehaviour(new BidServer());
+		addBehaviour(new InformServer());
 		
 	}
 	
@@ -80,9 +84,11 @@ public class AdditionSolver extends Agent{
 			ACLMessage msg = myAgent.receive(mt);
 			if (msg != null) {
 				// ACCEPT_PROPOSAL Message received. Process it
+				System.out.println("");
 				String problem = msg.getContent();
 				ACLMessage reply = msg.createReply();
 
+				System.out.println("Solving : " + problem);
 				Integer solution = (Integer) solveProblem(problem);
 				if (solution != null) {
 					reply.setPerformative(ACLMessage.INFORM);
@@ -103,10 +109,15 @@ public class AdditionSolver extends Agent{
 		}
 		
 		private Integer solveProblem(String problem) {
-			String[] parts = problem.split("+");
-			int left = Integer.parseInt(parts[0]);
-			int right = Integer.parseInt(parts[1]);
-			return ((Integer) left+right);
+			try {
+				String[] parts = problem.split("\\+");
+				int left = Integer.parseInt(parts[0]);
+				int right = Integer.parseInt(parts[1]);
+				return ((Integer) left+right);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return -999;
 		}
 		
 	}

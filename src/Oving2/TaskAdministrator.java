@@ -41,7 +41,7 @@ public class TaskAdministrator extends Agent{
 			
 			
 			
-			addBehaviour(new TickerBehaviour(this, 60000) {
+			addBehaviour(new TickerBehaviour(this, 10000) {
 				
 				@Override
 				protected void onTick() {
@@ -50,6 +50,7 @@ public class TaskAdministrator extends Agent{
 					ServiceDescription sd = new ServiceDescription();
 					sd.setType(agentType);
 					template.addServices(sd);
+					System.out.println("Starting search");
 					try {
 						DFAgentDescription[] result = DFService.search(myAgent, template); 
 						System.out.println("Found the following agents:");
@@ -64,6 +65,7 @@ public class TaskAdministrator extends Agent{
 					}
 					
 					// Perform the request
+					System.out.println("Start request");
 					myAgent.addBehaviour(new RequestPerformer());
 					
 				}
@@ -96,12 +98,13 @@ public class TaskAdministrator extends Agent{
 			switch (step) {
 			case 0:
 				// Send cfp to agents.
+				System.out.println("Sending cfp");
 				ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
 				for (int i = 0; i < taskAgents.length; ++i) {
 					cfp.addReceiver(taskAgents[i]);
 				} 
 				cfp.setContent(subProblem);
-				cfp.setConversationId("problem-");
+				cfp.setConversationId("problem-solver");
 				cfp.setReplyWith("cfp"+System.currentTimeMillis()); // Unique value
 				myAgent.send(cfp);
 				// Prepare the template to get proposals
@@ -112,12 +115,15 @@ public class TaskAdministrator extends Agent{
 
 			case 1:
 				// Receive all proposals/refusals from seller agents
+				System.out.println("Receive proposal");
 				ACLMessage reply = myAgent.receive(mt);
 				if (reply != null) {
 					// Reply received
+					System.out.println("Reply received");
 					if (reply.getPerformative() == ACLMessage.PROPOSE) {
 						// This is an offer 
 						int bid = Integer.parseInt(reply.getContent());
+						System.out.println("New bid: " + bid);
 						if (bestAgent == null || bid > bestBid) {
 							// This is the best offer at present
 							bestBid = bid;
@@ -132,11 +138,13 @@ public class TaskAdministrator extends Agent{
 				}
 				else {
 					block();
+					System.out.println("Blocking");
 				}
 				break;
 				
 			case 2:
 				// Send the purchase order to the seller that provided the best offer
+				System.out.println("Send solve");
 				ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 				order.addReceiver(bestAgent);
 				order.setContent(subProblem);
@@ -150,13 +158,15 @@ public class TaskAdministrator extends Agent{
 				break;
 			case 3:
 				// Receive the purchase order reply
+				System.out.println("Getting solution");
 				reply = myAgent.receive(mt);
 				if (reply != null) {
 					// Purchase order reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Purchase successful. We can terminate
 						System.out.println(subProblem +" successfully solved from agent "+reply.getSender().getName());
-						System.out.println("Bid = "+bestBid);
+						System.out.println("Solution: " + reply.getContent());
+						
 						myAgent.doDelete();
 					}
 					else {

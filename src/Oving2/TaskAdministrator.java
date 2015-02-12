@@ -13,9 +13,12 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+
+// TODO: Clear taskAgents when subproblem is solved.
+
 public class TaskAdministrator extends Agent{	
 	
-	private AID[] taskAgents;
+	private AID[] taskAgents; // List of agents that can do the specified problem
 	private String agentType = ""; // What operation to do. Ex: Adder, Subtracter, Divider, Multiplier
 	private Agent myAgent = this;
 	private String problem = ""; // Complete number

@@ -6,7 +6,7 @@ public class DivisionSolver extends GeneralSolver {
 	
 	public DivisionSolver() {
 		this.myAgent = this;
-		this.type = "Divisioner";
+		this.type = "Divider";
 		this.name = "JADE-Divisioner";
 	}
 

@@ -1,12 +1,12 @@
-package Oving2;
+package fagerland_hansen;
 
 import jade.core.Agent;
 
 public class MultiplicationSolver extends GeneralSolver {
 	
 	public MultiplicationSolver() {
-		this.myAgent = this;
-		this.type = "Multiplier";
+		//this.myAgent = this;
+		this.type = SolverType.MULTIPLIER;
 		this.name = "JADE-multiplier";
 	}
 

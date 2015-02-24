@@ -1,12 +1,12 @@
-package Oving2;
+package fagerland_hansen;
 
-import jade.core.Agent;
+import java.util.Random;
+
 
 public class DivisionSolver extends GeneralSolver {
 	
 	public DivisionSolver() {
-		this.myAgent = this;
-		this.type = "Divisioner";
+		this.type = SolverType.DIVIDER;
 		this.name = "JADE-Divisioner";
 	}
 

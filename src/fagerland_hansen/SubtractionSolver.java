@@ -1,4 +1,4 @@
-package Oving2;
+package fagerland_hansen;
 
 import jade.core.Agent;
 
@@ -7,8 +7,8 @@ public class SubtractionSolver extends GeneralSolver {
 
 	
 	public SubtractionSolver() {
-		this.myAgent = this;
-		this.type = "Subtracter";
+		//this.myAgent = this;
+		this.type = SolverType.SUBTRACTER;
 		this.name = "JADE-subtracter";
 	}
 	

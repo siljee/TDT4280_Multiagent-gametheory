@@ -1,4 +1,4 @@
-package fagerland_hansen;
+package oving02;
 
 import java.util.Random;
 

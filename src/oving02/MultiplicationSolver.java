@@ -1,24 +1,20 @@
-package fagerland_hansen;
+package oving02;
 
 import jade.core.Agent;
 
-public class SubtractionSolver extends GeneralSolver {
+public class MultiplicationSolver extends GeneralSolver {
 	
-
-	
-	public SubtractionSolver() {
+	public MultiplicationSolver() {
 		//this.myAgent = this;
-		this.type = SolverType.SUBTRACTER;
-		this.name = "JADE-subtracter";
+		this.type = SolverType.MULTIPLIER;
+		this.name = "JADE-multiplier";
 	}
-	
 
 	@Override
 	protected Integer solveProblem(String problem) {
 		String[] parts = numberSplitter(problem);
 		int left = Integer.parseInt(parts[0]);
 		int right = Integer.parseInt(parts[1]);
-		return ((Integer) left-right);
+		return ((Integer) left*right);
 	}
-
 }

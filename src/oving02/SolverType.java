@@ -1,4 +1,4 @@
-package fagerland_hansen;
+package oving02;
 
 public enum SolverType {
 		ADDER, SUBTRACTER, DIVIDER, MULTIPLIER, NONE

@@ -1,4 +1,4 @@
-package fagerland_hansen;
+package oving02;
 
 import java.util.ArrayList;
 
@@ -136,11 +136,11 @@ public class TaskAdmin extends Agent{
 		return indices;
 	}
 	
-	private void printProblem() {
-		for (int i = 0; i < splittedProblem.length; i++) {
-			System.out.println(splittedProblem[i]);
-		}
-	}
+//	private void printProblem() {
+//		for (int i = 0; i < splittedProblem.length; i++) {
+//			System.out.println(splittedProblem[i]);
+//		}
+//	}
 	
 	private boolean isSubProblem(int i) {
 		if (isOperator(splittedProblem[i])) {

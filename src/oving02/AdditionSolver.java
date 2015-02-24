@@ -1,4 +1,4 @@
-package fagerland_hansen;
+package oving02;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;

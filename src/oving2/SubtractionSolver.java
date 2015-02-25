@@ -1,4 +1,4 @@
-package oving02;
+package oving2;
 
 @SuppressWarnings("serial")
 public class SubtractionSolver extends GeneralSolver {

@@ -1,4 +1,4 @@
-package oving02;
+package oving2;
 
 import jade.core.Agent;
 

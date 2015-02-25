@@ -43,7 +43,6 @@ public class TaskAdmin extends Agent {
 			String[] splitProb = problem.split(" ");
 			for (String str: splitProb) {
 				splittedProblem.add(str);
-				System.out.println(str);
 			}
 			
 			System.out.println();
@@ -54,22 +53,18 @@ public class TaskAdmin extends Agent {
 			doDelete();
 		}
 		
-		
-		
 	}
 	
 
-	
 	private class ProblemHandler extends CyclicBehaviour {
 		
 		@Override
 		public void action() {
 			
-			if (!splittedProblem.get(index).equals("S") && splittedProblem.size()>1) {
-				taskAgents = null;
+			if (isSubProblemNotSolvedAndProblemNotSolved()) {
+				emptyListOfTaskAgents();
 			
 				System.out.println("ProblemHandler cycle");
-				System.out.println(splittedProblem);
 				subProblemToSolve = getSubProblem();
 				if (subProblemToSolve==null) {
 					System.out.println("subproblem error");
@@ -81,32 +76,44 @@ public class TaskAdmin extends Agent {
 					doDelete();
 				}
 				
-				// Searching
-				System.out.println("Searching for agent type: " + agentType);
-				DFAgentDescription template = new DFAgentDescription();
-				ServiceDescription sd = new ServiceDescription();
-				sd.setType(agentType);
-				template.addServices(sd);
-				System.out.println("Starting search");
-				
-				try {
-					DFAgentDescription[] result = DFService.search(myAgent, template); 
-					System.out.println("Found the following agents:");
-					taskAgents = new AID[result.length];
-					for (int i = 0; i < result.length; ++i) {
-						taskAgents[i] = result[i].getName();
-						System.out.println(taskAgents[i].getName());
-					}
-				}
-				catch (FIPAException fe) {
-					fe.printStackTrace();
-				}
+				searchForAgents();
 				System.out.println("Starting requests");
-				myAgent.addBehaviour(new RequestHandler2());
-				System.out.println("behaviour added");
+				// Begin Auction
+				myAgent.addBehaviour(new RequestHandler());
 			}
 		
 			
+		}
+
+		private void emptyListOfTaskAgents() {
+			taskAgents = null;
+		}
+
+		private boolean isSubProblemNotSolvedAndProblemNotSolved() {
+			return !splittedProblem.get(index).equals("S") && splittedProblem.size()>1;
+		}
+
+		private void searchForAgents() {
+			// Searching
+			System.out.println("Searching for agent type: " + agentType);
+			DFAgentDescription template = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType(agentType);
+			template.addServices(sd);
+			System.out.println("Starting search");
+			
+			try {
+				DFAgentDescription[] result = DFService.search(myAgent, template); 
+				System.out.println("Found the following agents:");
+				taskAgents = new AID[result.length];
+				for (int i = 0; i < result.length; ++i) {
+					taskAgents[i] = result[i].getName();
+					System.out.println(taskAgents[i].getName());
+				}
+			}
+			catch (FIPAException fe) {
+				fe.printStackTrace();
+			}
 		}
 		
 		private String getAgentType() {
@@ -122,6 +129,11 @@ public class TaskAdmin extends Agent {
 			return null;
 		}
 		
+		/*
+		 * Searches the problem for a sub problem, and removes the two numbers to operate on from the problem.
+		 * Further it sets a "S" in for the operator in the problem. This is where the solution from the sub problem
+		 * is going to be stored 
+		 */
 		private String getSubProblem() {
 			String subProblem = "";
 			for (int i = 0; i < splittedProblem.size(); i++) {
@@ -150,7 +162,12 @@ public class TaskAdmin extends Agent {
 		
 	}
 	
-	private class RequestHandler2 extends Behaviour {
+	/**
+	 *  This class handles the auction process between the TaskManager and the other agents. 
+	 *  The Book buyer and seller example is used as a mal for this.
+	 */
+	
+	private class RequestHandler extends Behaviour {
 		private AID bestAgent;
 		private int bestBid;
 		private int repliesCnt = 0;
@@ -180,7 +197,7 @@ public class TaskAdmin extends Agent {
 				break;
 
 			case 1:
-				// Receive all proposals/refusals from seller agents
+				// Receive bids form solver agents
 				System.out.println("Receive proposal");
 				ACLMessage reply = myAgent.receive(mt);
 				if (reply != null) {
@@ -209,7 +226,7 @@ public class TaskAdmin extends Agent {
 				break;
 				
 			case 2:
-				// Send the purchase order to the seller that provided the best offer
+				// Send the problem to the agent to solve it.
 				System.out.println("Send solve");
 				ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 				order.addReceiver(bestAgent);
@@ -223,13 +240,11 @@ public class TaskAdmin extends Agent {
 				step = 3;
 				break;
 			case 3:
-				// Receive the purchase order reply
+				// Receive the solution from the other agent
 				System.out.println("Getting solution");
 				reply = myAgent.receive(mt);
 				if (reply != null) {
-					// Purchase order reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
-						// Purchase successful. We can terminate
 						System.out.println(subProblemToSolve +" successfully solved from agent "+reply.getSender().getName());
 						System.out.println("Solution: " + reply.getContent());
 						for (int i = 0; i < splittedProblem.size(); i++) {
@@ -242,10 +257,9 @@ public class TaskAdmin extends Agent {
 								doDelete();
 							}
 						}
-//						myAgent.doDelete();
 					}
 					else {
-						System.out.println("Attempt failed: requested book already sold.");
+						System.out.println("Getting solution failed");
 					}
 
 					step = 4;

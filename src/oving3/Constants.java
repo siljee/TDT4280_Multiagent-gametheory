@@ -16,6 +16,7 @@ public interface Constants {
 	public static final String CONSONANTS = "bdfgklmnprstv"; 		// without c, h, j, q, w, x and z
 	
 	// Constants used in GeneralAgent
+	public static final int NUMBER_OF_AGENTS = 3;
 	public static final int START_MONEY = 5000;
 	public static final int MIN_INVENTORY_LIST_LENGTH = 2;
 	public static final int MAX_INVENTORY_LIST_LENGTH = 20;

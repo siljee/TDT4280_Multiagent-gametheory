@@ -18,8 +18,9 @@ public class GlobalItems implements Constants{
 	// This is a singleton class
 	private static final GlobalItems INSTANCE = new GlobalItems();
 	
-	private ArrayList<Item> items;		// A list of all existing items
-	private ArrayList<Item> ownedItems;	// A list of all items that are owned by agents
+	private ArrayList<Item> items;			// A list of all existing items
+	private ArrayList<Item> ownedItems;		// A list of all items that are owned by agents
+	private int inventoryAgentsCount = 0;	// Counts agents that have an inventory.
 	private Random random;
 	
 	/* *************************************** *
@@ -83,6 +84,7 @@ public class GlobalItems implements Constants{
 			inventoryList.add(item);
 			ownedItems.add(item);
 		}
+		inventoryAgentsCount++;
 		return inventoryList;
 	}
 	
@@ -99,6 +101,10 @@ public class GlobalItems implements Constants{
 			// ownedItems.remove(item);
 		}
 		return desiredList;
+	}
+
+	public int getInventoryAgentsCount() {
+		return inventoryAgentsCount;
 	}
 }
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -22,16 +23,13 @@ public abstract class GeneralAgent extends Agent implements Constants {
 		
 		// Initialize member variables:
 		globalItems = GlobalItems.getInstance();
+		money = START_MONEY;
 		inventoryList = globalItems.makeInventoryList();
 		
+		addBehaviour(new sellerBehaviour());
+		addBehaviour(new DesiredItemBehaviour());
 		
 		
-		desiredList = globalItems.makeDesiredList();
-		money = START_MONEY;
-		
-		for (int i = 0; i < desiredList.size(); i++) {
-			addBehaviour(new BuyBehaviour(desiredList.get(i)));
-		}
 		
 		// for each desired product in desiredlist. make a new buyer behaviour.
 				// each byer thread tries to buy one item or exchange with something it has 
@@ -65,6 +63,36 @@ public abstract class GeneralAgent extends Agent implements Constants {
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
+	}
+	
+	private class DesiredItemBehaviour extends Behaviour {
+		boolean isDone = false;
+
+		@Override
+		public void action() {
+			if (globalItems.getInventoryAgentsCount() >= NUMBER_OF_AGENTS) {
+				desiredList = globalItems.makeDesiredList();
+			
+				for (int i = 0; i < desiredList.size(); i++) {
+					addBehaviour(new BuyBehaviour(desiredList.get(i)));
+				}
+				isDone = true;
+			} else {
+				// Sleep for a short time to avoid it running many times in vain.
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		@Override
+		public boolean done() {
+			return isDone;
+		}
+			
+		
 	}
 	
 	private class BuyBehaviour extends Behaviour {
@@ -135,5 +163,13 @@ public abstract class GeneralAgent extends Agent implements Constants {
 		
 	}
 	
-	private class sellerBehavior extends Behaviour
+	private class sellerBehaviour extends CyclicBehaviour {
+
+		@Override
+		public void action() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
 }

@@ -209,7 +209,7 @@ public class GeneralAgent extends Agent implements Constants {
 						System.out.println(myAgent.getLocalName() + " have recieved informed/refuse for all agents about the item: " + desiredItem.getName());
 						
 						// TODO:!!! Make a proposal
-						int price = 1;
+						int price = Constants.MIN_VALUE;
 						
 						// send proposal to the chosen conversation.
 						if (chosenConversation == null) {
@@ -274,7 +274,7 @@ public class GeneralAgent extends Agent implements Constants {
 			
 				if (isInInventory(item)) {
 					// TODO: Make a price!
-					int price = 1;				//Dummy!
+					int price = Constants.MAX_VALUE;				//Dummy!
 					
 					// Send a propose message with the bid back. 
 					reply.setPerformative(ACLMessage.INFORM);
@@ -311,6 +311,7 @@ public class GeneralAgent extends Agent implements Constants {
 		boolean isBuyer;
 		ACLMessage receivedReply;
 		MessageTemplate messageTemplate;
+		boolean stopNegotiate = false;
 		
 		public NegotiationBehaviour(ACLMessage receivedMessage, boolean isBuyer) {
 			item = receivedMessage.getContent();
@@ -320,7 +321,11 @@ public class GeneralAgent extends Agent implements Constants {
 			
 			// TODO: This might be before addBehaviour, depending on whether price is obvious 
 			// or if a special algorithm is needed.
-			price = 0;
+			if (isBuyer) {
+				price = Constants.MIN_VALUE;
+			} else {
+				price = Constants.MAX_VALUE;
+			}
 		}
 		
 		@Override
@@ -329,6 +334,7 @@ public class GeneralAgent extends Agent implements Constants {
 			if (receivedReply != null) {
 				if (isBuyer) {
 					System.out.println("This is the old step 3!!");
+					
 				}
 
 				System.out.println("NEGOTIATION!");
@@ -338,21 +344,110 @@ public class GeneralAgent extends Agent implements Constants {
 					// Agent received a new proposal in chosenConversaton
 					int receivedPrice = Integer.parseInt(receivedReply.getContent());
 					System.out.println("New bid: " + receivedPrice + " from " + receivedReply.getSender().getLocalName());
-									
-					// Make a proposal
-					int price = 3;
 					
-					// send proposal.
-					ACLMessage sendReply = receivedReply.createReply();
-					sendReply.setPerformative(ACLMessage.PROPOSE);
-					sendReply.setContent(String.valueOf(price));
-					System.out.println(myAgent.getLocalName() + " sent (from NEGO) proposal to " + receivedReply.getSender().getLocalName());
-					myAgent.send(sendReply);
-			
-					// TODO: go forever.
-					//step = 3;	
-					messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(sendReply.getConversationId()),
-							MessageTemplate.MatchInReplyTo(sendReply.getReplyWith()));
+					// Evaluate receivedPrice
+					
+					double desiredListLength = 1;
+					if (desiredList.size() != 0) {
+						desiredListLength = desiredList.size();
+					}
+					
+					double utilityOffered = 0;
+					
+					if (isBuyer) {
+						 utilityOffered = (double)globalItems.getValueOfItem(item) - (double)receivedPrice + ((double)money)/desiredListLength;
+						 if (money<receivedPrice) {
+							 // Cannot afford the offered price.
+							 System.out.println("Cannot afford item");
+							 utilityOffered = -1;
+						 }
+					} else {
+						utilityOffered = (double)receivedPrice - (double)globalItems.getValueOfItem(item)  + ((double)money)/desiredListLength;
+					}
+					
+					if (utilityOffered>5000 || receivedPrice==price) {
+						// Accept offered price
+						stopNegotiate = true;
+						System.out.println("Accepting offer");
+						System.out.println("Stopping negotiation");
+						
+						if (receivedPrice!=price) {
+							// send proposal.
+							System.out.println("Sending back same price");
+							ACLMessage sendReply = receivedReply.createReply();
+							sendReply.setPerformative(ACLMessage.PROPOSE);
+							sendReply.setContent(String.valueOf(receivedPrice));
+							System.out.println(myAgent.getLocalName()
+									+ " sent (from NEGO) proposal to "
+									+ receivedReply.getSender().getLocalName());
+							myAgent.send(sendReply);
+							messageTemplate = MessageTemplate.and(
+									MessageTemplate
+											.MatchConversationId(sendReply
+													.getConversationId()),
+									MessageTemplate.MatchInReplyTo(sendReply
+											.getReplyWith()));
+						}
+						if (isBuyer) {
+							Item itemBought = new Item(item, globalItems.getValueOfItem(item));
+							inventoryList.add(itemBought);
+							for (int i = 0; i < desiredList.size(); i++) {
+								if(desiredList.get(i).getName().equals(item)) {
+									desiredList.remove(i);
+									break;
+								}
+							}
+						} else {
+							for (int i = 0; i < inventoryList.size(); i++) {
+								if(inventoryList.get(i).getName().equals(item)) {
+									inventoryList.remove(i);
+									break;
+								}
+							}
+						}
+						
+					} else {
+						// Continue negotiation
+							
+						System.out.println("Continue negotiation");
+						
+						// Make a proposal
+						if (isBuyer) {
+							price = price + 200;
+						} else {
+							price = price - 200;
+						}
+						
+						// Check if new proposal you are sending is acceptable for you.
+						double utilityNewPrice = 0;
+						if (isBuyer) {
+							utilityNewPrice = (double)price - (double)globalItems.getValueOfItem(item) + ((double)money)/desiredListLength;
+						} else {
+							utilityNewPrice =  (double)globalItems.getValueOfItem(item) - (double)price + ((double)money)/desiredListLength;
+						}
+						
+						if (utilityNewPrice>0) {
+						
+						System.out.println(price);
+							
+						// send proposal.
+						ACLMessage sendReply = receivedReply.createReply();
+						sendReply.setPerformative(ACLMessage.PROPOSE);
+						sendReply.setContent(String.valueOf(price));
+						System.out.println(myAgent.getLocalName() + " sent (from NEGO) proposal to " + receivedReply.getSender().getLocalName());
+						myAgent.send(sendReply);
+						
+						// TODO: go forever.
+						//step = 3;	
+						messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(sendReply.getConversationId()),
+								MessageTemplate.MatchInReplyTo(sendReply.getReplyWith()));
+						
+						} else {
+							// Cannot yield more, reject.
+							stopNegotiate = true;
+							System.out.println("Stopping negotiation");
+						}
+					}
 				}
 			} else {
 				// If no message is received the behaviour is blocked.
@@ -364,7 +459,7 @@ public class GeneralAgent extends Agent implements Constants {
 		@Override
 		public boolean done() {
 			// TODO Auto-generated method stub
-			return false;
+			return stopNegotiate;
 		}
 		
 	}
@@ -375,6 +470,7 @@ public class GeneralAgent extends Agent implements Constants {
 				return false;
 			}
 		}
+		System.out.println("Winner");
 		return true;
 	}
 	

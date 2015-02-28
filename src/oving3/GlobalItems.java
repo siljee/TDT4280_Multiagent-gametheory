@@ -114,5 +114,14 @@ public class GlobalItems implements Constants{
 		System.out.println("\n");
 	}
 	
+	public int getValueOfItem(String item) {
+		for (Item itemCheck : items) {
+			if (itemCheck.getName().equals(item)) {
+				return itemCheck.getValue();
+			}
+		}
+		return 0;
+	}
+	
 }
 

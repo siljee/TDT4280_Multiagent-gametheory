@@ -81,6 +81,7 @@ public class GeneralAgent extends Agent implements Constants {
 					System.out.println(myAgent.getLocalName() + " holds all the items! \n");
 					isDone = true;
 					// TODO: Terminate myAgent , terminate all agents
+					
 				} else {
 				// For each desired item, make a new BuyerBehaviour, if the desired item is not in the agent inventory.
 				for (int i = 0; i < desiredList.size(); i++) {
@@ -365,7 +366,7 @@ public class GeneralAgent extends Agent implements Constants {
 						utilityOffered = (double)receivedPrice - (double)globalItems.getValueOfItem(item)  + ((double)money)/desiredListLength;
 					}
 					
-					if (utilityOffered>5000 || receivedPrice==price) {
+					if (utilityOffered>5500 || receivedPrice==price) {
 						// Accept offered price
 						stopNegotiate = true;
 						System.out.println("Accepting offer");
@@ -465,12 +466,12 @@ public class GeneralAgent extends Agent implements Constants {
 	}
 	
 	private boolean isWinner() {
+		System.out.println("\nChecking winner");
 		for (int i = 0; i < desiredList.size(); i++) {
 			if (! inventoryList.contains(desiredList.get(i))) {
 				return false;
 			}
 		}
-		System.out.println("Winner");
 		return true;
 	}
 	

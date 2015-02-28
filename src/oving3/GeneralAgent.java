@@ -13,6 +13,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+@SuppressWarnings("serial")
 public class GeneralAgent extends Agent implements Constants {
 	private GlobalItems globalItems;
 	private ArrayList<Item> inventoryList;
@@ -21,18 +22,20 @@ public class GeneralAgent extends Agent implements Constants {
 	private String agentType = AGENT_TYPE;
 	
 	public void setup() {
+		// The agent have started and will register to DF.
 		System.out.println("Agent " + getLocalName() + " started");
 		registerToDF();
 		
 		// Initialise member variables:
 		globalItems = GlobalItems.getInstance();
-		money = START_MONEY;
 		inventoryList = globalItems.makeInventoryList();
+		money = START_MONEY;
 		
 		System.out.println(NUMBER_OF_AGENTS + " agents are needed to run the negotiations.");
 		
+		// Add behaviours
+		addBehaviour(new DesiredItemBehaviour());
 		addBehaviour(new sellerBehaviour());
-		addBehaviour(new DesiredItemBehaviour());	
 	}
 	
 	/**
@@ -69,14 +72,17 @@ public class GeneralAgent extends Agent implements Constants {
 	
 		@Override
 		public void action() {
+			// When all agents have made their inventory, the desired list is made
 			if (globalItems.getInventoryAgentsCount() >= NUMBER_OF_AGENTS) {
 				desiredList = globalItems.makeDesiredList();
 				
+				// If one agent is a winner the actions stops.
 				if (isWinner()) {
 					System.out.println(myAgent.getLocalName() + " holds all the items! \n");
 					isDone = true;
-					// TODO: Terminate myAgent 
+					// TODO: Terminate myAgent , terminate all agents
 				} else {
+				// For each desired item, make a new BuyerBehaviour, if the desired item is not in the agent inventory.
 				for (int i = 0; i < desiredList.size(); i++) {
 					if (! inventoryList.contains(desiredList.get(i))) {
 						System.out.println("\n" + myAgent.getLocalName() + " is searching for " + desiredList.get(i).getName());
@@ -110,6 +116,7 @@ public class GeneralAgent extends Agent implements Constants {
 		private Item desiredItem;
 		private AID [] agents;
 		int replyCounter = 0;
+		int lowestPrice = Integer.MAX_VALUE;
 		ACLMessage chosenConversation = null;
 		
 		public BuyBehaviour(Item desiredItem) {
@@ -138,6 +145,8 @@ public class GeneralAgent extends Agent implements Constants {
 					for (int i = 0; i < result.length; ++i) {
 						agents[i] = result[i].getName();
 					}
+					
+					// if there are no other agents: terminate. This should never happen.
 					if (agents.length <= 0) {
 						System.out.println("There are no other agents. Terminate!");
 						doDelete();
@@ -173,44 +182,56 @@ public class GeneralAgent extends Agent implements Constants {
 				break;
 				
 			/* Runs until all agents have answered. Receive all proposal/refusal from agents. Choose one */
-			case 2:				
+			case 2:	
+				
+				// receiver reply with the same template as cfp
 				ACLMessage receivedReply = myAgent.receive(messageTemplate);
 				if (receivedReply != null) {
 					// Reply received
 					if (receivedReply.getPerformative() == ACLMessage.INFORM) {
 						System.out.println("\n" + myAgent.getLocalName() + "<-------- Informed received (step2 buy) about " + desiredItem.getName() + " from " + receivedReply.getSender().getLocalName());
 						// The other agent have the desired item.
-						int recievedPrice = Integer.parseInt(receivedReply.getContent());
-						System.out.println("New price: " + recievedPrice + " from " + receivedReply.getSender().getLocalName());
-						chosenConversation = receivedReply;
+						int receivedPrice = Integer.parseInt(receivedReply.getContent());
+						System.out.println("New price: " + receivedPrice + " from " + receivedReply.getSender().getLocalName());
+						
+						// Choose the conversation with the lowest price
+						if (receivedPrice < lowestPrice) {
+							lowestPrice = receivedPrice;
+							chosenConversation = receivedReply;
+						}
 					} else {
 						System.out.println("\n" + myAgent.getLocalName() + "<-------- Refuse received (step2 buy) about " + desiredItem.getName() + " from " + receivedReply.getSender().getLocalName());
 					}
 					replyCounter++;
+					
+					// When all agents have answered the agent makes a new proposal and send it to the chosen conversation partner
 					if (replyCounter >= agents.length - 1) {
 						System.out.println(myAgent.getLocalName() + " have recieved informed/refuse for all agents about the item: " + desiredItem.getName());
-						// Reply received from all agents. send to one chosen one
 						
-						// Make a proposal
+						// TODO:!!! Make a proposal
 						int price = 1;
 						
-						// send proposal.
+						// send proposal to the chosen conversation.
 						if (chosenConversation == null) {
 							System.out.println("No agents hold the item: " + desiredItem.getName());
-							step = 5;
+							step = 3;
 							break;
 						}
+						
+						// Prepare the reply
 						ACLMessage reply = chosenConversation.createReply();
 						reply.setPerformative(ACLMessage.PROPOSE);
 						reply.setContent(String.valueOf(price));
 						
+						// Send the reply
 						System.out.println(myAgent.getLocalName() + " sent (from step2 buy) a propose to " + chosenConversation.getSender().getLocalName());
 						myAgent.send(reply);
-				
-						messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(reply.getConversationId()),
-								MessageTemplate.MatchInReplyTo(reply.getReplyWith()));
 						
-						step = 3;							
+						// Give the conversation to a new negotiation behavior.
+						addBehaviour(new NegotiationBehaviour(reply, true));
+
+						// End this behhaviour
+						step = 3;
 						break;
 					}
 				} else {
@@ -218,79 +239,13 @@ public class GeneralAgent extends Agent implements Constants {
 					block();
 				}
 				break;
-				
-				
-			/* Runs until negotiation is finished. Receives and sends proposal until they agree */
-			case 3:
-				
-				receivedReply = myAgent.receive(messageTemplate);
-				if (receivedReply != null) {
-					System.out.println("STEP3 buy");
-					// Reply received
-					if (receivedReply.getPerformative() == ACLMessage.PROPOSE) {
-						System.out.println(myAgent.getLocalName() + "<-------- Propose received (step3 buy) about item " + desiredItem.getName() + " from " + receivedReply.getSender().getLocalName() );
-
-						// Agent received a new proposal in chosenConversaton
-						int receivedPrice = Integer.parseInt(receivedReply.getContent());
-						System.out.println("New bid: " + receivedPrice + " from " + receivedReply.getSender().getLocalName());
-										
-						// Make a proposal
-						int price = 1;
-						
-						// send proposal.
-						ACLMessage sendReply = receivedReply.createReply();
-						sendReply.setPerformative(ACLMessage.PROPOSE);
-						sendReply.setContent(String.valueOf(price));
-						
-						System.out.println(myAgent.getLocalName() + " sent a propose about item " + desiredItem.getName() + " to " + receivedReply.getSender().getLocalName());
-						
-						myAgent.send(sendReply);
-				
-						messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(sendReply.getConversationId()),
-								MessageTemplate.MatchInReplyTo(sendReply.getReplyWith()));
-						// TODO: go forever.
-						//step = 3;							
-						break;
-					} else {
-						System.out.println(myAgent.getLocalName() + "<-------- something else than propose! received buy step 3 about item " + desiredItem.getName() + " from " + receivedReply.getSender().getLocalName() );
-
-					}
-				} else {
-					// If no message is received the behaviour is blocked.
-					block();
-				}
-	
-				
-				
-				// send a proposal
-				
-				
-				// negotiate with the chosen agent
-				// SPECIALISED AGENT NEGOTIATIO FUNCTION COMES HERE
-				
-				// When negotiation finished: send the item
-				// remember two different messages: either buying or exchanging
-				
-				// prepare template to get the purchased order reply
-				
-			case 4: 
-				// Receive purchase order reply.
-				// The deal is finished
-				// update everything (remove from desired and add to inventory. 
-				// reduce money or remove exchanged item from inventory. )
-				
-				// step = 5
 			}
 		}
 	
 		@Override
 		public boolean done() {
 			// Stop behaviour if no agent hold the desired item or if all steps are executed
-			if (step == 3 && chosenConversation == null) {
-				System.out.println("No agents hold the item: " + desiredItem.getName());
-			}
-			
-			return (step == 5 || (step == 3 && chosenConversation == null));
+			return (step == 3);
 		}
 		
 	}
@@ -327,7 +282,7 @@ public class GeneralAgent extends Agent implements Constants {
 					
 					// Make a negotiation behaviour that will take care of the negotiation
 					// receiving and sending proposes with the right conversatio ID and reply with
-					addBehaviour(new NegotiationBehaviour(reply));
+					addBehaviour(new NegotiationBehaviour(reply, false));
 					System.out.println(myAgent.getLocalName() + " sent (from seller) a INFORM about " + item + " to " + receivedCFPmessage.getSender().getLocalName());
 				}
 				else {
@@ -353,11 +308,13 @@ public class GeneralAgent extends Agent implements Constants {
 	private class NegotiationBehaviour extends Behaviour {
 		String item;
 		int price;
+		boolean isBuyer;
 		ACLMessage receivedReply;
 		MessageTemplate messageTemplate;
 		
-		public NegotiationBehaviour(ACLMessage receivedMessage) {
+		public NegotiationBehaviour(ACLMessage receivedMessage, boolean isBuyer) {
 			item = receivedMessage.getContent();
+			this.isBuyer = isBuyer;
 			messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(receivedMessage.getConversationId()),
 													MessageTemplate.MatchInReplyTo(receivedMessage.getReplyWith()));
 			
@@ -370,6 +327,9 @@ public class GeneralAgent extends Agent implements Constants {
 		public void action() {
 			receivedReply = myAgent.receive(messageTemplate);
 			if (receivedReply != null) {
+				if (isBuyer) {
+					System.out.println("This is the old step 3!!");
+				}
 
 				System.out.println("NEGOTIATION!");
 				// Reply received

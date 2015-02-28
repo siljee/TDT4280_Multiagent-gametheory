@@ -78,7 +78,7 @@ public class GlobalItems implements Constants{
 		ArrayList<Item> inventoryList = new ArrayList<Item>();
  		int inventorySize = MIN_INVENTORY_LIST_LENGTH + random.nextInt(MAX_INVENTORY_LIST_LENGTH - MIN_DESIRED_LIST_LENGTH);
 		Item item;
- 		
+		
 		for (int i = 0; i < inventorySize; i++) {
 			item = items.get(random.nextInt(items.size()));
 			inventoryList.add(item);
@@ -94,7 +94,7 @@ public class GlobalItems implements Constants{
 		Item item;
  		
 		for (int i = 0; i < desiredSize; i++) {
-			item = items.get(random.nextInt(ownedItems.size()));
+			item = ownedItems.get(random.nextInt(ownedItems.size()));
 			desiredList.add(item);
 			// MAYBE: If number of agents desiring an item cannot be larger than the number of 
 			// agents owing an item, then this has to be included:
@@ -106,5 +106,13 @@ public class GlobalItems implements Constants{
 	public int getInventoryAgentsCount() {
 		return inventoryAgentsCount;
 	}
+	
+	private void printList(ArrayList<Item> list) {
+		for (int i = 0; i < list.size(); i++) {
+			System.out.println(list.get(i).getName() + " " + list.get(i).getValue());
+		}
+		System.out.println("\n");
+	}
+	
 }
 

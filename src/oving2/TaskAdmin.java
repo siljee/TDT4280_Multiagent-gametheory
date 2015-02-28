@@ -275,7 +275,7 @@ public class TaskAdmin extends Agent{
 						// We received all replies
 						step = 2; 
 					}
-				}
+				} 
 				else {
 					block();
 					System.out.println("Blocking");

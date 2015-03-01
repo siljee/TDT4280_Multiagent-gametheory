@@ -415,7 +415,8 @@ public class GeneralAgent extends Agent implements Constants {
 					} else {
 						utilityOffered = (double)receivedPrice - (double)globalItems.getValueOfItem(itemName)  + ((double)money)/desiredListLength;
 					}
-					System.out.println(utilityOffered);
+					
+					
 					if (utilityOffered>3000 || receivedPrice==price) {
 						// Accept offered price
 						stopNegotiate = true;
@@ -439,6 +440,7 @@ public class GeneralAgent extends Agent implements Constants {
 											.getReplyWith()));
 						} 
 						if (isBuyer) {
+							// update inventory
 							Item itemBought = new Item(item, globalItems.getValueOfItem(itemName));
 							inventoryList.add(itemBought);
 							for (int i = 0; i < desiredList.size(); i++) {
@@ -509,6 +511,7 @@ public class GeneralAgent extends Agent implements Constants {
 								
 							}
 						} else {
+							// update inventory if agent is seller
 							for (int i = 0; i < inventoryList.size(); i++) {
 								if(inventoryList.get(i).getName().equals(itemName)) {
 									inventoryList.remove(i);

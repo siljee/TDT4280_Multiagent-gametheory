@@ -21,6 +21,8 @@ public class GeneralAgent extends Agent implements Constants {
 	private int money;
 	private String agentType = AGENT_TYPE;
 	private AID [] agents;
+	private int numberOfPropReject;
+	private String prevDesItem;
 	
 	public void setup() {
 		// Sleep for some time. This is to setup sniffer.
@@ -31,6 +33,7 @@ public class GeneralAgent extends Agent implements Constants {
 			e.printStackTrace();
 		}
 		
+		numberOfPropReject = 0;
 		// The agent have started and will register to DF.
 		System.out.println("Agent " + getLocalName() + " started");
 		registerToDF();
@@ -227,7 +230,11 @@ public class GeneralAgent extends Agent implements Constants {
 						System.out.println(myAgent.getLocalName() + " have recieved informed/refuse for all agents about the item: " + desiredItem.getName());
 						
 						// TODO:!!! Make a proposal
-						int price = Constants.MIN_VALUE;
+						double desiredListLength = 1;
+						if (desiredList.size()>0) {
+							desiredListLength = desiredList.size();
+						}
+						int price = (int) (0.5*(((double)globalItems.getValueOfItem(desiredItem.getName())/((double)Constants.MAX_VALUE))*((double)money)/((double)desiredListLength)));	
 						
 						// send proposal to the chosen conversation.
 						if (chosenConversation == null) {
@@ -306,7 +313,11 @@ public class GeneralAgent extends Agent implements Constants {
 			
 				if (isInInventory(item)) {
 					// TODO: Make a price!
-					int price = Constants.MAX_VALUE;				//Dummy!
+					double desiredListLength = 1;
+					if (desiredList.size()>0) {
+						desiredListLength = desiredList.size();
+					}
+					int price = (int) (1.5*(((double)globalItems.getValueOfItem(item)/((double)Constants.MAX_VALUE))*((double)money)/((double)desiredListLength)));			//Dummy!
 					
 					// Send a propose message with the bid back. 
 					reply.setPerformative(ACLMessage.INFORM);
@@ -356,9 +367,17 @@ public class GeneralAgent extends Agent implements Constants {
 			// TODO: This might be before addBehaviour, depending on whether price is obvious 
 			// or if a special algorithm is needed.
 			if (isBuyer) {
-				price = Constants.MIN_VALUE;
+				double desiredListLength = 1;
+				if (desiredList.size()>0) {
+					desiredListLength = desiredList.size();
+				}
+				price = (int) (0.5*(((double)globalItems.getValueOfItem(itemName)/((double)Constants.MAX_VALUE))*((double)money)/((double)desiredListLength)));	
 			} else {
-				price = Constants.MAX_VALUE;
+				double desiredListLength = 1;
+				if (desiredList.size()>0) {
+					desiredListLength = desiredList.size();
+				}
+				price = (int) (1.5*(((double)globalItems.getValueOfItem(itemName)/((double)Constants.MAX_VALUE))*((double)money)/((double)desiredListLength)));	
 			}
 		}
 		
@@ -384,6 +403,11 @@ public class GeneralAgent extends Agent implements Constants {
 				if (receivedReply.getPerformative() == ACLMessage.REJECT_PROPOSAL) {
 					System.out.println("Proposal rejected");
 					stopNegotiate = true;
+					if (isBuyer && numberOfPropReject < 5) {
+						Item desiredItem = new Item(itemName, globalItems.getValueOfItem(itemName));
+						myAgent.addBehaviour(new BuyBehaviour(desiredItem));
+						numberOfPropReject++;
+					}
 				}
 
 				
@@ -417,7 +441,7 @@ public class GeneralAgent extends Agent implements Constants {
 					}
 					
 					
-					if (utilityOffered>3000 || receivedPrice==price) {
+					if (utilityOffered>5900 || receivedPrice==price) {
 						// Accept offered price
 						stopNegotiate = true;
 						System.out.println("Accepting offer");
@@ -527,9 +551,9 @@ public class GeneralAgent extends Agent implements Constants {
 						
 						// Make a proposal
 						if (isBuyer) {
-							price = price + 200;
+							price = price + 100;
 						} else {
-							price = price - 200;
+							price = price - 100;
 						}
 						
 						// Check if new proposal you are sending is acceptable for you.
@@ -540,7 +564,7 @@ public class GeneralAgent extends Agent implements Constants {
 							utilityNewPrice =  (double)price - (double)globalItems.getValueOfItem(itemName) + ((double)money)/desiredListLength;
 						}
 						System.out.println(isBuyer + " " + utilityNewPrice);
-						if (utilityNewPrice>3000) {
+						if (utilityNewPrice>6050) {
 						
 							
 						// send proposal.
@@ -559,6 +583,13 @@ public class GeneralAgent extends Agent implements Constants {
 							// Cannot yield more, reject.
 							stopNegotiate = true;
 							System.out.println("Recting proposal");
+							
+							if (isBuyer && numberOfPropReject < 5) {
+								Item desiredItem = new Item(itemName, globalItems.getValueOfItem(itemName));
+								
+								myAgent.addBehaviour(new BuyBehaviour(desiredItem));
+								numberOfPropReject++;
+							}
 							
 							ACLMessage sendReply = receivedReply.createReply();
 							sendReply.setPerformative(ACLMessage.REJECT_PROPOSAL);

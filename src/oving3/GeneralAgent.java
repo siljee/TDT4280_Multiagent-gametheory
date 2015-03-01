@@ -20,8 +20,17 @@ public class GeneralAgent extends Agent implements Constants {
 	private ArrayList<Item> desiredList;
 	private int money;
 	private String agentType = AGENT_TYPE;
+	private AID [] agents;
 	
 	public void setup() {
+		// Sleep for some time. This is to setup sniffer.
+		try {
+			Thread.sleep(30000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		// The agent have started and will register to DF.
 		System.out.println("Agent " + getLocalName() + " started");
 		registerToDF();
@@ -115,7 +124,7 @@ public class GeneralAgent extends Agent implements Constants {
 		private int step = 0;
 		private MessageTemplate messageTemplate;
 		private Item desiredItem;
-		private AID [] agents;
+		
 		int replyCounter = 0;
 		int lowestPrice = Integer.MAX_VALUE;
 		ACLMessage chosenConversation = null;
@@ -127,6 +136,14 @@ public class GeneralAgent extends Agent implements Constants {
 		
 		@Override
 		public void action() {
+			
+			MessageTemplate messageCancel = MessageTemplate.MatchPerformative(ACLMessage.CANCEL);
+			ACLMessage receivedCancel = myAgent.receive(messageCancel);
+			if (receivedCancel != null) {
+				System.out.println(getLocalName() + ": Shutting down");
+				doDelete();
+			} else {
+			
 			switch (step) {
 			
 			/* Runs once. Finds all negotiation agents */ 
@@ -229,7 +246,7 @@ public class GeneralAgent extends Agent implements Constants {
 						myAgent.send(reply);
 						
 						// Give the conversation to a new negotiation behavior.
-						addBehaviour(new NegotiationBehaviour(reply, true));
+						addBehaviour(new NegotiationBehaviour(reply, true, desiredItem.getName()));
 
 						// End this behhaviour
 						step = 3;
@@ -240,6 +257,7 @@ public class GeneralAgent extends Agent implements Constants {
 					block();
 				}
 				break;
+			}
 			}
 		}
 	
@@ -268,7 +286,20 @@ public class GeneralAgent extends Agent implements Constants {
 			MessageTemplate messageTemplateCFP = MessageTemplate.MatchPerformative(ACLMessage.CFP);
 			ACLMessage receivedCFPmessage = myAgent.receive(messageTemplateCFP);
 			
+			
+			// Check to shutdown
+			MessageTemplate messageCancel = MessageTemplate.MatchPerformative(ACLMessage.CANCEL);
+			ACLMessage receivedCancel = myAgent.receive(messageCancel);
+			if (receivedCancel != null) {
+				System.out.println(getLocalName()+ ": Shutting down");
+				doDelete();
+			} else {
+			
 			if (receivedCFPmessage != null) {
+				
+				
+				
+				
 				// CFP Message received. Get the item to consider and prepare a reply
 				String item = receivedCFPmessage.getContent();
 				ACLMessage reply = receivedCFPmessage.createReply();
@@ -283,7 +314,7 @@ public class GeneralAgent extends Agent implements Constants {
 					
 					// Make a negotiation behaviour that will take care of the negotiation
 					// receiving and sending proposes with the right conversatio ID and reply with
-					addBehaviour(new NegotiationBehaviour(reply, false));
+					addBehaviour(new NegotiationBehaviour(reply, false, item));
 					System.out.println(myAgent.getLocalName() + " sent (from seller) a INFORM about " + item + " to " + receivedCFPmessage.getSender().getLocalName());
 				}
 				else {
@@ -300,7 +331,7 @@ public class GeneralAgent extends Agent implements Constants {
 			}
 			
 			
-			
+			}
 			
 		}
 		
@@ -308,14 +339,16 @@ public class GeneralAgent extends Agent implements Constants {
 	
 	private class NegotiationBehaviour extends Behaviour {
 		String item;
+		String itemName;
 		int price;
 		boolean isBuyer;
 		ACLMessage receivedReply;
 		MessageTemplate messageTemplate;
 		boolean stopNegotiate = false;
 		
-		public NegotiationBehaviour(ACLMessage receivedMessage, boolean isBuyer) {
+		public NegotiationBehaviour(ACLMessage receivedMessage, boolean isBuyer,String itemName) {
 			item = receivedMessage.getContent();
+			this.itemName = itemName;
 			this.isBuyer = isBuyer;
 			messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(receivedMessage.getConversationId()),
 													MessageTemplate.MatchInReplyTo(receivedMessage.getReplyWith()));
@@ -331,17 +364,34 @@ public class GeneralAgent extends Agent implements Constants {
 		
 		@Override
 		public void action() {
+			// Check to shutdown
+			MessageTemplate messageCancel = MessageTemplate.MatchPerformative(ACLMessage.CANCEL);
+			ACLMessage receivedCancel = myAgent.receive(messageCancel);
+			if (receivedCancel != null) {
+				System.out.println(getLocalName() + ": Shutting down");
+				doDelete();
+			} else {
+				
+			
+			
 			receivedReply = myAgent.receive(messageTemplate);
 			if (receivedReply != null) {
 				if (isBuyer) {
 					System.out.println("This is the old step 3!!");
 					
 				}
+				
+				if (receivedReply.getPerformative() == ACLMessage.REJECT_PROPOSAL) {
+					System.out.println("Proposal rejected");
+					stopNegotiate = true;
+				}
 
-				System.out.println("NEGOTIATION!");
-				// Reply received
-				System.out.println("\n" + myAgent.getLocalName() + "<-------- Proposal received in negotiation from " + receivedReply.getSender().getLocalName());
+				
 				if (receivedReply.getPerformative() == ACLMessage.PROPOSE) {
+					System.out.println("NEGOTIATION!");
+					// Reply received
+					System.out.println("\n" + myAgent.getLocalName() + "<-------- Proposal received in negotiation from " + receivedReply.getSender().getLocalName());
+					
 					// Agent received a new proposal in chosenConversaton
 					int receivedPrice = Integer.parseInt(receivedReply.getContent());
 					System.out.println("New bid: " + receivedPrice + " from " + receivedReply.getSender().getLocalName());
@@ -356,22 +406,21 @@ public class GeneralAgent extends Agent implements Constants {
 					double utilityOffered = 0;
 					
 					if (isBuyer) {
-						 utilityOffered = (double)globalItems.getValueOfItem(item) - (double)receivedPrice + ((double)money)/desiredListLength;
+						 utilityOffered = (double)globalItems.getValueOfItem(itemName) - (double)receivedPrice + ((double)money)/desiredListLength;
 						 if (money<receivedPrice) {
 							 // Cannot afford the offered price.
 							 System.out.println("Cannot afford item");
 							 utilityOffered = -1;
 						 }
 					} else {
-						utilityOffered = (double)receivedPrice - (double)globalItems.getValueOfItem(item)  + ((double)money)/desiredListLength;
+						utilityOffered = (double)receivedPrice - (double)globalItems.getValueOfItem(itemName)  + ((double)money)/desiredListLength;
 					}
-					
-					if (utilityOffered>5500 || receivedPrice==price) {
+					System.out.println(utilityOffered);
+					if (utilityOffered>3000 || receivedPrice==price) {
 						// Accept offered price
 						stopNegotiate = true;
 						System.out.println("Accepting offer");
 						System.out.println("Stopping negotiation");
-						
 						if (receivedPrice!=price) {
 							// send proposal.
 							System.out.println("Sending back same price");
@@ -388,19 +437,80 @@ public class GeneralAgent extends Agent implements Constants {
 													.getConversationId()),
 									MessageTemplate.MatchInReplyTo(sendReply
 											.getReplyWith()));
-						}
+						} 
 						if (isBuyer) {
-							Item itemBought = new Item(item, globalItems.getValueOfItem(item));
+							Item itemBought = new Item(item, globalItems.getValueOfItem(itemName));
 							inventoryList.add(itemBought);
 							for (int i = 0; i < desiredList.size(); i++) {
-								if(desiredList.get(i).getName().equals(item)) {
+								if(desiredList.get(i).getName().equals(itemName)) {
 									desiredList.remove(i);
 									break;
 								}
 							}
+							if (isWinner()) {
+								// Check if new winner elsewhere
+								receivedCancel = myAgent.receive(messageCancel);
+								if (receivedCancel != null) {
+									System.out.println(getLocalName() + ": Shutting down");
+									doDelete();
+								} else {
+								
+								System.out.println("We have a winner: " + getLocalName());
+								// Need to send abort to other agents.
+								
+								DFAgentDescription DFDescription = new DFAgentDescription();
+								ServiceDescription serviceDescription = new ServiceDescription();
+								serviceDescription.setType(AGENT_TYPE);
+								DFDescription.addServices(serviceDescription);
+								//AID[] agents;
+								
+//								try {
+//									// Find all agents with the DF description
+//									DFAgentDescription[] result = DFService.search(myAgent, DFDescription);
+//									
+//									// Place the agents in the agents array.
+//									agents = new AID[result.length];
+//									for (int i = 0; i < result.length; ++i) {
+//										agents[i] = result[i].getName();
+//									}
+//									
+//									// if there are no other agents: terminate. This should never happen.
+//									if (agents.length <= 0) {
+//										System.out.println("There are no other agents. Terminate!");
+//										doDelete();
+//									}
+									
+									ACLMessage cancel = new ACLMessage(ACLMessage.CANCEL);
+									
+									// Set all negotiation agents as receivers except self.
+									for (int i = 0; i < agents.length; ++i) {
+										if (!myAgent.getAID().equals(agents[i])) {
+											cancel.addReceiver(agents[i]);
+										}
+									} 
+									
+									System.out.println("Sending cancels");
+									myAgent.send(cancel);
+									
+									System.out.println(getLocalName() + ": Shutting down");
+									doDelete();
+//									
+								}
+//								} catch (FIPAException fe) {
+//									fe.printStackTrace();
+//								}
+								
+								
+								
+								
+								// set content and conversationID to be the desired items name and send the CFP message.
+								
+								
+								
+							}
 						} else {
 							for (int i = 0; i < inventoryList.size(); i++) {
-								if(inventoryList.get(i).getName().equals(item)) {
+								if(inventoryList.get(i).getName().equals(itemName)) {
 									inventoryList.remove(i);
 									break;
 								}
@@ -422,14 +532,13 @@ public class GeneralAgent extends Agent implements Constants {
 						// Check if new proposal you are sending is acceptable for you.
 						double utilityNewPrice = 0;
 						if (isBuyer) {
-							utilityNewPrice = (double)price - (double)globalItems.getValueOfItem(item) + ((double)money)/desiredListLength;
+							utilityNewPrice =  (double)globalItems.getValueOfItem(itemName) - (double)price + ((double)money)/desiredListLength;
 						} else {
-							utilityNewPrice =  (double)globalItems.getValueOfItem(item) - (double)price + ((double)money)/desiredListLength;
+							utilityNewPrice =  (double)price - (double)globalItems.getValueOfItem(itemName) + ((double)money)/desiredListLength;
 						}
+						System.out.println(isBuyer + " " + utilityNewPrice);
+						if (utilityNewPrice>3000) {
 						
-						if (utilityNewPrice>0) {
-						
-						System.out.println(price);
 							
 						// send proposal.
 						ACLMessage sendReply = receivedReply.createReply();
@@ -446,13 +555,25 @@ public class GeneralAgent extends Agent implements Constants {
 						} else {
 							// Cannot yield more, reject.
 							stopNegotiate = true;
-							System.out.println("Stopping negotiation");
+							System.out.println("Recting proposal");
+							
+							ACLMessage sendReply = receivedReply.createReply();
+							sendReply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+							System.out.println(myAgent.getLocalName() + " sent (from NEGO) reject to " + receivedReply.getSender().getLocalName());
+							myAgent.send(sendReply);
+							
+							// TODO: go forever.
+							//step = 3;	
+							messageTemplate = MessageTemplate.and(	MessageTemplate.MatchConversationId(sendReply.getConversationId()),
+									MessageTemplate.MatchInReplyTo(sendReply.getReplyWith()));
 						}
 					}
 				}
 			} else {
 				// If no message is received the behaviour is blocked.
 				block();
+			}
+			
 			}
 			
 		}
